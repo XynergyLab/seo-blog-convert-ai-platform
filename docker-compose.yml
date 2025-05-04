@@ -5,9 +5,14 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "5000:5000"
-    environment:
-      - FLASK_ENV=production
-      - DATABASE_URL=postgresql://user:password@database:5432/lm_studio_agents
+environment:
+  - FLASK_ENV=production
+  - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@database:5432/${DB_NAME:-lm_studio_agents}
+  # LM Studio API configuration
+  - LM_API_BASE_URL=${LM_API_BASE_URL:-http://localhost:1234}
+  - LM_API_KEY=${LM_API_KEY}
+  - LM_MODEL=${LM_MODEL:-default}
+  - LM_MAX_TOKENS=${LM_MAX_TOKENS:-2000}
       - DB_USER=user
       - DB_PASSWORD=password
       - DB_HOST=database
@@ -106,10 +111,18 @@ services:
 volumes:
   postgres:
     driver: local
+  lm_studio_cache:
+    driver: local
   static:
     driver: local
   logs:
     driver: local
+
+secrets:
+  db_password:
+    file: ./secrets/db_password.txt
+  lm_api_key:
+    file: ./secrets/lm_api_key.txt
 
 networks:
   lm_network:

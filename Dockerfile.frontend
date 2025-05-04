@@ -2,10 +2,13 @@ FROM node:16-alpine as build-stage
 
 WORKDIR /frontend
 
-# Copy package.json and install dependencies
-COPY package.json package-lock.json* ./
-COPY vue.config.js ./
-COPY tsconfig.json ./
+# Copy only package files first for better layer caching
+COPY package.json package-lock.json ./
+RUN npm ci --prefer-offline --no-audit
+
+# Copy config files
+COPY vue.config.js .
+COPY tsconfig.json .
 
 # Install dependencies including Vue CLI service locally
 # Use install since we might not have package-lock.json
@@ -24,10 +27,19 @@ ENV DISABLE_ESLINT_PLUGIN=true
 ENV VUE_APP_ANALYTICS_ENABLED=true
 ENV VUE_APP_CHART_THEME=light
 # Build with optimization
-RUN ./node_modules/.bin/vue-cli-service build --mode production
+# Build with environment variables
+RUN VUE_APP_VERSION=${VUE_APP_VERSION} \
+    VUE_APP_LM_API_BASE_URL=${VUE_APP_LM_API_BASE_URL} \
+    ./node_modules/.bin/vue-cli-service build --mode production
 
 # Create a production-stage image
-FROM node:16-alpine as production-stage
+# Use Node 20 LTS
+FROM node:20-alpine as build-stage
+
+# Configure build arguments for LM Studio
+ARG VUE_APP_LM_API_BASE_URL
+ARG VUE_APP_LM_API_KEY
+ARG VUE_APP_VERSION=production
 
 WORKDIR /app
 
