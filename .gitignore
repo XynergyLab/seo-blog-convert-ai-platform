@@ -3,24 +3,21 @@ node_modules/
 **/node_modules/
 
 # Environment files
-.env
-.env.*
-!.env.example
-
+config/.env
+config/.env.*
+!config/.env.example
 # Build output
 dist/
 build/
-builds/
+docker/builds/ # Updated path
 .out/
 .next/
 .nuxt/
 
 # Database migrations - should not be committed
-/migrations/**
+database/migrations/ # Updated path
 
-# Test directories and files
-/tests/**
-!/tests/__init__.py
+# Test directories removed from root
 
 # Python test artifacts
 .pytest_cache/
@@ -72,5 +69,10 @@ ehthumbs.db
 [Dd]esktop.ini
 
 
-secrets/
-
+config/secrets/ # Updated path
+config/instance/ # Added ignore for moved instance folder
+docker/builds/
+venv/
+*.pyc
+config/secrets
+config/instance
