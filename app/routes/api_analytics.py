@@ -82,26 +82,30 @@ def ensure_sample_data(start_date: datetime.date, end_date: datetime.date) -> No
             
             current_date += timedelta(days=1)
 
+# Helper function for getting period-based default days
+def get_default_days_from_period(period: str) -> int:
+    """Convert period string to default number of days"""
+    if period == 'week':
+        return 7
+    elif period == 'quarter':
+        return 90
+    elif period == 'year':
+        return 365
+    else:  # month is default
+        return 30
+
 # 1. Overview metrics endpoints
 
-# GET /api/analytics/overview - Get main dashboard metrics
 @api_analytics.route('/overview', methods=['GET'])
 def get_overview():
+    """Get main dashboard metrics"""
     try:
         # Parse date range parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-        elif period == 'year':
-            default_days = 365
-        
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # Ensure we have sample data for demo purposes
@@ -132,22 +136,16 @@ def get_overview():
         current_app.logger.exception('Error getting analytics overview')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# GET /api/analytics/trends - Get metric trends
 @api_analytics.route('/trends', methods=['GET'])
 def get_trends():
+    """Get metric trends"""
     try:
         # Parse date range parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-            
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # Ensure we have sample data for demo purposes
@@ -168,22 +166,16 @@ def get_trends():
 
 # 2. Time series data endpoints
 
-# GET /api/analytics/impressions - Get impression data over time
 @api_analytics.route('/impressions', methods=['GET'])
 def get_impressions():
+    """Get impression data over time"""
     try:
         # Parse date range parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-            
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # Ensure we have sample data for demo purposes
@@ -209,22 +201,16 @@ def get_impressions():
         current_app.logger.exception('Error getting impression data')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# GET /api/analytics/clicks - Get click data over time
 @api_analytics.route('/clicks', methods=['GET'])
 def get_clicks():
+    """Get click data over time"""
     try:
         # Parse date range parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-            
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # Ensure we have sample data for demo purposes
@@ -250,22 +236,16 @@ def get_clicks():
         current_app.logger.exception('Error getting click data')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# GET /api/analytics/visitors - Get visitor data over time
 @api_analytics.route('/visitors', methods=['GET'])
 def get_visitors():
+    """Get visitor data over time"""
     try:
         # Parse date range parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-            
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # Ensure we have sample data for demo purposes
@@ -293,9 +273,9 @@ def get_visitors():
 
 # 3. Performance data endpoints
 
-# GET /api/analytics/top-keywords - Get top performing keywords
 @api_analytics.route('/top-keywords', methods=['GET'])
 def get_top_keywords():
+    """Get top performing keywords"""
     try:
         # Parse parameters
         limit = request.args.get('limit', 10, type=int)
@@ -332,6 +312,7 @@ def get_top_keywords():
                 position_value = i * 0.5
                 impressions_value = 1000 - (i * 50)
                 clicks_value = impressions_value * (0.2 - (i * 0.01))
+                # Fix potential division by zero
                 ctr_value = (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0
                 
                 sample_keywords.append({
@@ -362,9 +343,9 @@ def get_top_keywords():
         current_app.logger.exception('Error getting top keywords')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# GET /api/analytics/top-pages - Get top performing pages
 @api_analytics.route('/top-pages', methods=['GET'])
 def get_top_pages():
+    """Get top performing pages"""
     try:
         # Parse parameters
         limit = request.args.get('limit', 10, type=int)
@@ -392,6 +373,7 @@ def get_top_pages():
             for i in range(1, limit + 1):
                 impressions_value = 2000 - (i * 100)
                 clicks_value = impressions_value * (0.15 - (i * 0.005))
+                # Fix potential division by zero
                 ctr_value = (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0
                 
                 sample_pages.append({
@@ -423,6 +405,8 @@ def get_top_pages():
             factor = 1.0 - (i / max(1, len(blog_posts)))
             impressions_value = int(1500 * factor) + 500
             clicks_value = int(impressions_value * (0.12 * factor + 0.05))
+            # Fix potential division by zero
+            ctr_value = (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0
             
             pages.append({
                 'id': blog.id,
@@ -432,7 +416,7 @@ def get_top_pages():
                 'blogId': blog.id,
                 'impressions': impressions_value,
                 'clicks': clicks_value,
-                'ctr': (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0,
+                'ctr': ctr_value,
                 'pageViews': clicks_value * 1.5,
                 'uniquePageViews': clicks_value * 1.2,
                 'bounceRate': 65 - (i * 2.5),
@@ -459,22 +443,16 @@ def get_top_pages():
         current_app.logger.exception('Error getting top pages')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# GET /api/analytics/page/{id} - Get single page analytics
 @api_analytics.route('/page/<page_id>', methods=['GET'])
 def get_page_analytics(page_id):
+    """Get single page analytics"""
     try:
         # Parse date range parameters
         start_date = request.args.get('start_date')
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-            
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # First, try to get a blog post with this ID
@@ -517,6 +495,7 @@ def get_page_analytics(page_id):
             total_impressions = sum(impressions)
             total_clicks = sum(clicks)
             total_views = sum(page_views)
+            # Fix potential division by zero
             avg_ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
             avg_time_on_page = 120  # seconds
             
@@ -525,11 +504,13 @@ def get_page_analytics(page_id):
             for i in range(1, 6):
                 kw_impressions = int(total_impressions * (0.2 - (i * 0.03)))
                 kw_clicks = int(kw_impressions * (0.15 - (i * 0.02)))
+                # Fix potential division by zero
+                kw_ctr = (kw_clicks / kw_impressions * 100) if kw_impressions > 0 else 0
                 keywords.append({
                     "keyword": f"sample keyword {i}",
                     "impressions": kw_impressions,
                     "clicks": kw_clicks,
-                    "ctr": (kw_clicks / kw_impressions * 100) if kw_impressions > 0 else 0,
+                    "ctr": kw_ctr,
                     "position": i * 0.7
                 })
             
@@ -575,7 +556,6 @@ def get_page_analytics(page_id):
         current_app.logger.exception('Error getting page analytics')
         return jsonify({'success': False, 'error': str(e)}), 500
 
-# Add combined analytics endpoint for dashboard
 @api_analytics.route('/dashboard', methods=['GET'])
 def get_analytics_dashboard():
     """Get all analytics data needed for the dashboard in a single request"""
@@ -585,13 +565,7 @@ def get_analytics_dashboard():
         end_date = request.args.get('end_date')
         period = request.args.get('period', 'month')
         
-        # Set default range based on period
-        default_days = 30
-        if period == 'week':
-            default_days = 7
-        elif period == 'quarter':
-            default_days = 90
-            
+        default_days = get_default_days_from_period(period)
         start, end = parse_date_range(start_date, end_date, default_days)
         
         # Ensure we have sample data
@@ -613,6 +587,7 @@ def get_analytics_dashboard():
                 position_value = i * 0.5
                 impressions_value = 1000 - (i * 50)
                 clicks_value = impressions_value * (0.2 - (i * 0.01))
+                # Fix potential division by zero
                 ctr_value = (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0
                 
                 sample_keywords.append({
@@ -638,6 +613,7 @@ def get_analytics_dashboard():
             for i in range(1, 11):
                 impressions_value = 2000 - (i * 100)
                 clicks_value = impressions_value * (0.15 - (i * 0.005))
+                # Fix potential division by zero
                 ctr_value = (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0
                 
                 pages.append({
@@ -654,10 +630,42 @@ def get_analytics_dashboard():
                 factor = 1.0 - (i / max(1, len(blog_posts)))
                 impressions_value = int(1500 * factor) + 500
                 clicks_value = int(impressions_value * (0.12 * factor + 0.05))
+                # Fix potential division by zero
+                ctr_value = (clicks_value / impressions_value) * 100 if impressions_value > 0 else 0
                 
                 pages.append({
                     'id': blog.id,
                     'title': blog.title,
                     'path': f'/blog/{blog.id}',
                     'url': f'https://example.com/blog/{blog.id}',
-                    
+                    'impressions': impressions_value,
+                    'clicks': clicks_value,
+                    'ctr': ctr_value
+                })
+        
+        # Sort pages based on the requested metric
+        if page_metric == 'ctr':
+            pages.sort(key=lambda p: p['ctr'], reverse=True)
+        elif page_metric == 'impressions':
+            pages.sort(key=lambda p: p['impressions'], reverse=True)
+        else:  # clicks
+            pages.sort(key=lambda p: p['clicks'], reverse=True)
+            
+        # Return complete dashboard data
+        return jsonify({
+            'success': True,
+            'metrics': {**metrics, **trends},
+            'timeSeries': time_series,
+            'topKeywords': top_keywords,
+            'topPages': pages,
+            'dateRange': {
+                'start': start.isoformat(),
+                'end': end.isoformat(),
+                'period': period
+            }
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.exception('Error getting dashboard data')
+        return jsonify({'success': False, 'error': str(e)}), 500
+

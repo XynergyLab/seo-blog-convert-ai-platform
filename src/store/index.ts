@@ -1,15 +1,71 @@
-import { defineStore, createPinia } from 'pinia'
-import piniaPluginPersistedstate from 'pinia-plugin-persistedstate'
+/**
+ * Store index file
+ * 
+ * Exports Redis-backed store implementations for state management.
+ * These stores replace the previous Pinia implementation while maintaining
+ * the same interface to minimize changes to existing components.
+ */
 
-const pinia = createPinia()
-pinia.use(piniaPluginPersistedstate)
+// Import Redis service for verification
+import redisService from '../services/redisService';
 
-export default pinia
+// Import Redis-backed stores
+import { useAuthStore, getAuthStore } from './redisAuth';
+import { useSettingsStore, getSettingsStore } from './redisSettings';
 
-// Export all store modules
-export * from './auth'
-export * from './settings'
-export * from './blog'
-export * from './social'
-export * from './keywords'
+// Re-export original blog, social and keywords stores
+// These stores are still using Pinia and will be migrated in future phases
+export * from './blog';
+export * from './social';
+export * from './keywords';
 
+// Export Redis store implementations
+export { useAuthStore, getAuthStore };
+export { useSettingsStore, getSettingsStore };
+
+// Get singleton instances of Redis stores
+const authStore = getAuthStore();
+const settingsStore = getSettingsStore();
+
+/**
+ * Initialize all Redis-backed stores
+ * This should be called during application startup
+ * 
+ * @returns {Promise<boolean>} True if initialization was successful
+ */
+export const initializeRedisStores = async (): Promise<boolean> => {
+  try {
+    // Force initialization of stores if not already initialized
+    await Promise.all([
+      authStore.initialize(),
+      settingsStore.initialize()
+    ]);
+    
+    console.log('Redis-backed stores initialized successfully');
+    return true;
+  } catch (error) {
+    console.error('Failed to initialize Redis-backed stores:', error);
+    
+    // Dispatch event for Redis connection failure
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('redis:connection:failed'));
+    }
+    
+    return false;
+  }
+};
+
+/**
+ * Check if Redis is available and connected
+ * 
+ * @returns {boolean} True if Redis is connected
+ */
+export const isRedisConnected = (): boolean => {
+  return redisService.isConnected();
+};
+
+// Export an empty default for compatibility with import statements
+export default {
+  // This object is intentionally empty to provide compatibility with
+  // code that might import this module using the default import syntax
+};

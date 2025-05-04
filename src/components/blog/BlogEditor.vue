@@ -1,25 +1,29 @@
 <template>
-  <div>
-    <div v-if="loading">Loading...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-    <form v-else @submit.prevent="handleSubmit">
-      <h2>Edit Blog Post</h2>
+  <div class="blog-editor">
+    <div v-if="loading" class="loading">Loading...</div>
+    <div v-if="error" class="error">{{ error }}</div>
+    
+    <form v-if="!loading" @submit.prevent="handleSubmit">
       <div>
-        <label>Title</label>
-        <input v-model="title" type="text" required />
+        <label for="title">Title</label>
+        <input id="title" v-model="title" type="text" required placeholder="Blog title" />
       </div>
+      
       <div>
-        <label>Topic</label>
-        <input v-model="topic" type="text" required />
+        <label for="topic">Topic</label>
+        <input id="topic" v-model="topic" type="text" required placeholder="Blog topic" />
       </div>
+      
       <div>
-        <label>Keywords</label>
-        <input v-model="keywords" type="text" />
+        <label for="keywords">Keywords</label>
+        <input id="keywords" v-model="keywords" type="text" placeholder="Keywords (comma separated)" />
       </div>
+      
       <div>
-        <label>Content</label>
-        <textarea v-model="content" rows="10" required />
+        <label for="content">Content</label>
+        <textarea id="content" v-model="content" rows="10" required placeholder="Blog content" />
       </div>
+      
       <button type="submit" :disabled="saving">Save Changes</button>
       <button @click.prevent="goToPreview" :disabled="saving" style="margin-left:1em;">Cancel</button>
       <div v-if="saving" class="info">Saving...</div>
@@ -101,20 +105,63 @@ onMounted(fetchPost)
 </script>
 
 <style scoped>
+.blog-editor {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
 form > div {
   margin: 10px 0;
 }
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input[type="text"],
+textarea {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
 .error {
   color: red;
   margin: 10px 0;
 }
+
 .success {
   color: green;
   margin: 10px 0;
 }
+
 .info {
   color: #555;
 }
+
+.loading {
+  color: #555;
+  margin: 20px 0;
+}
+
+button {
+  padding: 8px 16px;
+  background: #2196f3;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+button:hover {
+  background: #0b7dda;
+}
+
 button[disabled] {
   background: #ddd;
   cursor: not-allowed;

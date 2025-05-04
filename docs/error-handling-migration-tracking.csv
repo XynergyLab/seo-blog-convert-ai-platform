@@ -1,0 +1,9 @@
+Service Name,Migration Complexity,Current Error Handling,Migration Status,Compatibility Layer Required,Migration Start Date,Migration Completion Date,Testing Status,Performance Impact,Risk Level,Key Challenges,Notes
+AuthService,High,Custom error classes,Not Started,Yes,,,,Low,Medium,"Multiple authentication error types","Requires careful mapping of existing error hierarchies"
+UserService,Medium,Generic error handling,Not Started,No,,,,Negligible,Low,"Simple error structures","Straightforward migration path"
+NetworkService,High,Extensive error logging,Not Started,Yes,,,,Medium,High,"Complex network error scenarios","Detailed performance testing required"
+DatabaseService,Critical,Transactional error management,Not Started,Yes,,,,High,Critical,"Sensitive error handling","Requires comprehensive backward compatibility"
+PaymentService,High,External API error integration,Not Started,Yes,,,,Medium,High,"Multiple payment gateway errors","Complex error translation needed"
+NotificationService,Low,Basic error reporting,Not Started,No,,,,Low,Low,"Simple notification error handling","Quick migration expected"
+AnalyticsService,Medium,Aggregated error tracking,Not Started,No,,,,Negligible,Low,"Existing error aggregation","Minimal changes required"
+

@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from app.models.blog import BlogPost
+from app.models.blog import BlogPost, BlogPostVersion
 from app.services.lmstudio import LMStudioClient, LMStudioAPIError
 from datetime import datetime
 
@@ -124,4 +124,200 @@ def api_blog_delete(post_id):
         return jsonify({'success': False, 'error': 'Blog post not found'}), 404
     post.delete()
     return jsonify({'success': True}), 200
+
+# POST /api/blog/generate-outline: Generate a structured outline for a blog post
+@api_blog.route('/generate-outline', methods=['POST'])
+def api_blog_generate_outline():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'JSON payload required'}), 400
+        
+        title = data.get('title', '').strip()
+        keywords = data.get('keywords', [])
+        sections = data.get('sections', 3)
+        
+        # Validate
+        if not title:
+            return jsonify({'success': False, 'error': 'Title is required'}), 400
+            
+        # Cap sections to reasonable number
+        if sections > 10:
+            sections = 10
+            
+        # Format keywords for prompt
+        keywords_text = ", ".join(keywords) if keywords else "no specific keywords"
+        
+        prompt = f"""Create a detailed outline for a blog post titled "{title}".
+The outline should include {sections} main sections (plus an introduction and conclusion).
+Focus on these keywords: {keywords_text}.
+For each section, provide a clear heading and a brief description of what should be covered.
+Format your response as a structured outline with main points and supporting details.
+"""
+
+        client = LMStudioClient()
+        if not client.check_connection():
+            return jsonify({'success': False, 'error': 'Cannot connect to LM Studio API.'}), 503
+            
+        messages = [
+            {"role": "system", "content": "You are a professional content outline creator."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        response = client.create_chat_completion(
+            messages=messages,
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        outline_text = response.get('choices', [{}])[0].get('message', {}).get('content', '')
+        if not outline_text:
+            return jsonify({'success': False, 'error': 'No outline generated'}), 500
+            
+        # Parse the outline into a structured format
+        # This is a simple approach - you might want to enhance this with more sophisticated parsing
+        lines = outline_text.strip().split('\n')
+        sections = []
+        current_section = None
+        
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            if line.startswith('#') or line.startswith('Section') or line.startswith('Introduction') or line.startswith('Conclusion'):
+                if current_section:
+                    sections.append(current_section)
+                current_section = {'title': line.replace('#', '').strip(), 'content': ''}
+            elif current_section:
+                if current_section['content']:
+                    current_section['content'] += '\n' + line
+                else:
+                    current_section['content'] = line
+                    
+        if current_section:
+            sections.append(current_section)
+            
+        return jsonify({
+            'success': True, 
+            'outline': sections,
+            'raw_outline': outline_text
+        }), 200
+        
+    except LMStudioAPIError as e:
+        return jsonify({'success': False, 'error': f'LM Studio API error: {str(e)}'}), 500
+    except Exception as e:
+        current_app.logger.exception('Error generating blog outline')
+        return jsonify({'success': False, 'error': 'Unexpected error'}), 500
+
+# POST /api/blog/generate-section: Generate content for a specific section of a blog post
+@api_blog.route('/generate-section', methods=['POST'])
+def api_blog_generate_section():
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({'success': False, 'error': 'JSON payload required'}), 400
+        
+        title = data.get('title', '').strip()
+        heading = data.get('heading', '').strip()
+        keywords = data.get('keywords', [])
+        previous_section = data.get('previousSection', '').strip()
+        tone = data.get('tone', 'professional').strip()
+        
+        # Validate
+        if not title or not heading:
+            return jsonify({'success': False, 'error': 'Title and heading are required'}), 400
+            
+        # Format keywords for prompt
+        keywords_text = ", ".join(keywords) if keywords else "no specific keywords"
+        
+        prompt = f"""Write a section for a blog post titled "{title}".
+Section heading: "{heading}"
+Tone: {tone}
+Keywords to include: {keywords_text}
+"""
+
+        if previous_section:
+            prompt += f"\nThis section follows after: \"{previous_section}\"\nMake sure your content flows naturally from the previous section."
+        
+        client = LMStudioClient()
+        if not client.check_connection():
+            return jsonify({'success': False, 'error': 'Cannot connect to LM Studio API.'}), 503
+            
+        messages = [
+            {"role": "system", "content": "You are a professional blog writer skilled at creating engaging, informative content."},
+            {"role": "user", "content": prompt}
+        ]
+        
+        response = client.create_chat_completion(
+            messages=messages,
+            temperature=0.7,
+            max_tokens=1000
+        )
+        
+        section_content = response.get('choices', [{}])[0].get('message', {}).get('content', '')
+        if not section_content:
+            return jsonify({'success': False, 'error': 'No content generated'}), 500
+            
+        return jsonify({
+            'success': True, 
+            'heading': heading,
+            'content': section_content
+        }), 200
+        
+    except LMStudioAPIError as e:
+        return jsonify({'success': False, 'error': f'LM Studio API error: {str(e)}'}), 500
+    except Exception as e:
+        current_app.logger.exception('Error generating blog section')
+        return jsonify({'success': False, 'error': 'Unexpected error'}), 500
+
+# GET /api/blog/<id>/history: Get version history for a blog post
+@api_blog.route('/<post_id>/history', methods=['GET'])
+def api_blog_history(post_id):
+    try:
+        post = BlogPost.get_by_id(post_id)
+        if not post:
+            return jsonify({'success': False, 'error': 'Blog post not found'}), 404
+            
+        versions = BlogPostVersion.get_for_post(post_id)
+        return jsonify({
+            'success': True,
+            'versions': [v.to_dict() for v in versions]
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.exception(f'Error retrieving history for blog post {post_id}')
+        return jsonify({'success': False, 'error': 'Unexpected error'}), 500
+
+# POST /api/blog/<id>/restore/<version_id>: Restore a previous version of a blog post
+@api_blog.route('/<post_id>/restore/<version_id>', methods=['POST'])
+def api_blog_restore_version(post_id, version_id):
+    try:
+        post = BlogPost.get_by_id(post_id)
+        if not post:
+            return jsonify({'success': False, 'error': 'Blog post not found'}), 404
+            
+        version = BlogPostVersion.get_by_id(version_id)
+        if not version or version.post_id != post_id:
+            return jsonify({'success': False, 'error': 'Version not found for this post'}), 404
+            
+        # Create a new version of the current content before restoring
+        post.create_version("Auto-saved before restoration")
+        
+        # Restore content from version
+        post.update(
+            title=version.title,
+            content=version.content,
+            updated_at=datetime.now()
+        )
+        
+        return jsonify({
+            'success': True,
+            'post': post.to_dict(),
+            'restored_from': version.to_dict()
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.exception(f'Error restoring version {version_id} for blog post {post_id}')
+        return jsonify({'success': False, 'error': 'Unexpected error'}), 500
 
