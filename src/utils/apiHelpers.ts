@@ -32,11 +32,11 @@ export function handleApiError(error: unknown): string {
 /**
  * Wrapper for API responses with standardized success/error handling
  */
-export async function apiRequest&lt;T>(promise: Promise&lt;{ data: T }>): Promise&lt;T> {
+export async function apiRequest<T>(promise: Promise<{ data: T }>): Promise<T> {
   try {
     const response = await promise
     return response.data
-  } catch (error) {
+  } catch (error: unknown) {
     throw new Error(handleApiError(error))
   }
 }

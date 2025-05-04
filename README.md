@@ -1,29 +1,47 @@
-# AI Agent MVP
+# Seo-Blog-Conversion AI Platform
 
-An AI-powered content generation application that leverages local LLMs through LM Studio to create blog posts and social media content. This MVP demonstrates how to build agents that can generate, schedule, and manage content across platforms.
+A cutting-edge AI-powered platform designed to revolutionize content creation, SEO optimization, and blog conversion strategies. Leveraging local Large Language Models (LLMs) through LM Studio, this platform generates high-quality, SEO-optimized content that drives organic traffic and engagement.
 
-![AI Agent MVP](docs/screenshots/placeholder.png)
+![Seo-Blog-Conversion AI Platform](docs/screenshots/platform-overview.png)
 
-## Features
+## Key Differentiators
 
-- **Blog Post Generation**: Create high-quality blog posts with AI
-  - Customizable topics, tones, and lengths
-  - Edit and refine generated content
-  - Preview and publish functionality
-  
-- **Social Media Content Creation**: Generate platform-specific social media posts
-  - Support for Twitter, Facebook, Instagram, and LinkedIn
-  - Platform-aware character limits and formatting
-  - Hashtag generation and management
-  
-- **Content Scheduling**: Schedule posts for future publishing
-  - Calendar-based scheduling interface
-  - Status tracking (draft, scheduled, published)
-  
-- **Local LLM Integration**: Connect to LM Studio running locally
-  - No dependency on external API services
-  - Compatible with any model loaded in LM Studio
-  - Resilient connection handling
+- **AI-Driven SEO Content Generation**: Create search-engine optimized blog posts that align with current SEO best practices
+- **Intelligent Keyword Integration**: Automatically identify and strategically place high-value keywords
+- **Content Performance Prediction**: Use AI to forecast potential article performance and engagement metrics
+- **Multi-Platform Content Adaptation**: Generate content tailored for different platforms and audience segments
+
+## Advanced Features
+
+### 🚀 SEO-Optimized Content Generation
+- Advanced AI-powered blog post creation
+- Real-time SEO scoring and optimization
+- Automatic metadata and snippet generation
+- Content gap analysis and recommendation
+
+### 🔍 Intelligent Keyword Strategy
+- Semantic keyword research
+- Long-tail keyword identification
+- Keyword density optimization
+- Contextual keyword placement
+
+### 📊 Content Performance Analytics
+- AI-driven engagement prediction
+- Competitive content benchmarking
+- Automated content improvement suggestions
+- Performance tracking and insights
+
+### 🌐 Multi-Platform Content Adaptation
+- Cross-platform content generation
+- Platform-specific content optimization
+- Adaptive tone and style matching
+- Social media snippet generation
+
+### 🤖 Advanced LLM Integration
+- Local LLM support via LM Studio
+- Model agnostic architecture
+- Advanced prompt engineering
+- Configurable AI creativity levels
 
 ## Installation
 
@@ -36,8 +54,8 @@ An AI-powered content generation application that leverages local LLMs through L
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/lm-studio-agents.git
-cd lm-studio-agents
+git clone https://github.com/XynergyLab/seo-blog-convert-ai-platform.git
+cd seo-blog-convert-ai-platform
 ```
 
 ### Step 2: Create and Activate Virtual Environment
@@ -61,10 +79,11 @@ pip install -r requirements.txt
 ```
 
 ## Environment Setup
-
-Create a `.env` file in the root directory with the following configuration:
+Create a `.env` file in the `config/` directory with the following configuration:
 
 ```
+# Place this file in the config/ directory
+# Flask application settings
 # Flask application settings
 SECRET_KEY=your_secure_secret_key
 FLASK_APP=app.py
@@ -116,12 +135,12 @@ This application connects to a local LM Studio instance for content generation. 
    - POST /v1/embeddings - Creates embeddings
 
 2. Connection handling includes:
-   - Automatic retry mechanism (configurable via .env)
+   - Automatic retry mechanism (configurable via config/.env)
    - Timeout handling
    - Error reporting and user feedback
    - Connection status indicators
 
-3. Configuration in `.env`:
+3. Configuration in `config/.env`:
    - `LM_STUDIO_API_URL`: The URL of your LM Studio API server
    - `LM_STUDIO_API_TIMEOUT`: Request timeout in seconds
    - `LM_STUDIO_API_RETRIES`: Number of retry attempts on failure
@@ -132,17 +151,43 @@ This application connects to a local LM Studio instance for content generation. 
 
 ```
 /lm-studio-agents
-  /app
-    /models        # Data models
-    /routes        # Route definitions
-    /services      # Business logic and integrations
-    /static        # CSS and static assets
-    /templates     # HTML templates
-    __init__.py    # App initialization
-  /tests           # Test files
-  app.py           # Application entry point
-  requirements.txt # Dependencies
-  .env             # Environment configuration
+  /app             # Backend Flask application
+    /models
+    /routes
+    /services
+    /static
+    /templates
+    /tests         # Backend tests
+    __init__.py
+  /src             # Frontend Vue application source
+    /components
+    /router
+    /services
+    /store
+    /tests         # Frontend tests
+    /views
+    main.ts
+  /config          # Configuration files
+    .env           # Environment variables (ignored)
+    /instance      # Instance config (ignored)
+    /secrets       # Secret files (ignored)
+  /database        # Database related files
+    /migrations    # Alembic migrations (ignored)
+    db_init.py
+  /docker          # Docker related files
+    /builds        # Docker build artifacts (ignored)
+    start.sh
+  /docs            # Documentation
+  app.py           # Application entry point (legacy? wsgi.py seems used)
+  wsgi.py          # WSGI entry point for Gunicorn
+  migrate.py       # Migration script helper
+  requirements.txt # Backend dependencies
+  package.json     # Frontend dependencies
+  Dockerfile.backend
+  Dockerfile.frontend
+  docker-compose.yml
+  README.md
+  ... other config files (vue.config.js, tsconfig.json etc.)
 ```
 
 ### Running Tests
@@ -154,9 +199,8 @@ pytest
 For coverage report:
 
 ```bash
-pytest --cov=app tests/
+pytest --cov=app app/tests/
 ```
-
 ## API Endpoints
 
 ### Blog Post Generation

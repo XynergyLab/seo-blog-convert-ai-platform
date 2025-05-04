@@ -15,9 +15,10 @@ import { useSettingsStore, getSettingsStore } from './redisSettings';
 
 // Re-export original blog, social and keywords stores
 // These stores are still using Pinia and will be migrated in future phases
-export * from './blog';
-export * from './social';
-export * from './keywords';
+// TODO: Uncomment these exports once the modules are available
+// export * from './blog';
+// export * from './social';
+// export * from './keywords';
 
 // Export Redis store implementations
 export { useAuthStore, getAuthStore };
@@ -35,7 +36,25 @@ const settingsStore = getSettingsStore();
  */
 export const initializeRedisStores = async (): Promise<boolean> => {
   try {
-    // Force initialization of stores if not already initialized
+    // Check if Redis is available first
+    const isRedisAvailable = await redisService.healthCheck().catch(() => ({ healthy: false }));
+    
+    if (!isRedisAvailable.healthy) {
+      console.warn('Redis service unavailable, falling back to local storage');
+      // Dispatch event for Redis connection failure
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('redis:connection:failed'));
+      }
+      return false;
+    }
+    
+    // Make sure store instances exist
+    if (!getAuthStore() || !getSettingsStore()) {
+      console.error('Store singletons not properly initialized');
+      return false;
+    }
+    
+    // Force initialization of stores
     await Promise.all([
       authStore.initialize(),
       settingsStore.initialize()
@@ -56,12 +75,17 @@ export const initializeRedisStores = async (): Promise<boolean> => {
 };
 
 /**
- * Check if Redis is available and connected
+ * Safely get Redis connection status with error handling
  * 
  * @returns {boolean} True if Redis is connected
  */
 export const isRedisConnected = (): boolean => {
-  return redisService.isConnected();
+  try {
+    return redisService.isConnected();
+  } catch (error) {
+    console.error('Error checking Redis connection:', error);
+    return false;
+  }
 };
 
 // Export an empty default for compatibility with import statements

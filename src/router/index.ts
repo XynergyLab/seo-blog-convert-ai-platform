@@ -305,11 +305,3 @@ if (process.env.NODE_ENV === 'development') {
 }
 
 export default router;
-  if (to.name === 'blog-version-preview' && to.params.versionId) {
-    // The component will handle this with props
-  }
-  
-  next()
-})
-
-export default router

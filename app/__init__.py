@@ -10,13 +10,17 @@ from app.extensions import db, migrate
 import logging
 from logging.config import dictConfig
 
-# Load environment variables from .env file
-load_dotenv()
+# Load environment variables from .env file in the config directory
+dotenv_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'config', '.env')
+load_dotenv(dotenv_path=dotenv_path)
 
 def create_app(test_config=None):
     # Create and configure the app
-    app = Flask(__name__, instance_relative_config=True)
-    
+    # Note: instance_relative_config=True is less useful now as we set instance_path manually
+    app = Flask(__name__, instance_relative_config=False)
+    # Explicitly set the instance path relative to the project root (one level up from app)
+    app.instance_path = os.path.join(app.root_path, '..', 'config', 'instance')
+
     # Initialize CORS
     cors_origins = os.environ.get('CORS_ALLOWED_ORIGINS', '*')
     if cors_origins != '*':
@@ -60,8 +64,10 @@ def create_app(test_config=None):
     
     # Initialize extensions with app
     db.init_app(app)
-    migrate.init_app(app, db)
-    
+    # Specify the path to the migrations directory relative to the project root
+    migrations_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'database', 'migrations')
+    migrate.init_app(app, db, directory=migrations_dir)
+
     # Basic logging config to ensure output goes to stderr
     dictConfig({
         'version': 1,

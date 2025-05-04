@@ -27,19 +27,19 @@
         <Button @click="runAllTests" :disabled="isRunning" class="p-button-primary">
           <i class="pi pi-play"></i> Run All Tests
         </Button>
-        <Button @click="testRedisConnection" :disabled="isRunning" class="p-button-secondary">
+        <Button @click="runRedisConnectionTest" :disabled="isRunning" class="p-button-secondary">
           <i class="pi pi-server"></i> Test Connection
         </Button>
-        <Button @click="testAuthStore" :disabled="isRunning" class="p-button-secondary">
+        <Button @click="runAuthStoreTest" :disabled="isRunning" class="p-button-secondary">
           <i class="pi pi-user"></i> Test Auth Store
         </Button>
-        <Button @click="testSettingsStore" :disabled="isRunning" class="p-button-secondary">
+        <Button @click="runSettingsStoreTest" :disabled="isRunning" class="p-button-secondary">
           <i class="pi pi-cog"></i> Test Settings Store
         </Button>
-        <Button @click="testCrossTabSync" :disabled="isRunning" class="p-button-secondary">
+        <Button @click="runCrossTabSyncTest" :disabled="isRunning" class="p-button-secondary">
           <i class="pi pi-clone"></i> Test Cross-Tab Sync
         </Button>
-        <Button @click="testErrorHandling" :disabled="isRunning" class="p-button-secondary">
+        <Button @click="runErrorHandlingTest" :disabled="isRunning" class="p-button-secondary">
           <i class="pi pi-exclamation-triangle"></i> Test Error Handling
         </Button>
         <Button @click="clearResults" :disabled="isRunning" class="p-button-text">
@@ -55,14 +55,18 @@
       <DataTable :value="testDetails" 
                  :paginator="testDetails.length > 10" 
                  :rows="10" 
-                 sortField="timestamp" 
+                 sortField="timestamp"
                  :sortOrder="-1"
                  class="p-datatable-sm">
-        <Column field="testName" header="Test" sortable style="width: 25%"></Column>
-        <Column field="status" header="Status" sortable style="width: 10%">
+        <Column field="name" header="Test" sortable style="width: 25%">
+          <!-- Changed field to name -->
+        </Column>
+        <Column field="success" header="Status" sortable style="width: 10%">
+          <!-- Changed field to success -->
           <template #body="slotProps">
-            <Tag :severity="slotProps.data.status === 'PASS' ? 'success' : 'danger'" rounded>
-              {{ slotProps.data.status }}
+            <!-- Updated template to use success boolean -->
+            <Tag :severity="slotProps.data.success ? 'success' : 'danger'" rounded>
+              {{ slotProps.data.success ? 'PASS' : 'FAIL' }}
             </Tag>
           </template>
         </Column>
@@ -174,17 +178,14 @@ import Tag from 'primevue/tag';
 import Message from 'primevue/message';
 import { useAuthStore, getAuthStore } from '../store';
 import { useSettingsStore, getSettingsStore } from '../store';
-import * as RedisTests from '../utils/redis-tests';
-
-interface TestResult {
-  testName: string;
-  status: 'PASS' | 'FAIL';
-  timestamp: number;
-  duration: number;
-  message?: string;
-  error?: string;
-}
-
+import { 
+  testRedisConnection,
+  testAuthStore,
+  testSettingsStore,
+  testErrorHandling,
+  testCrossTabSync,
+  type TestResult
+} from '../utils/redis-tests';
 interface LogEntry {
   level: 'info' | 'error' | 'debug';
   message: string;
@@ -205,6 +206,7 @@ export default defineComponent({
   setup() {
     // Test state
     const isRunning = ref(false);
+    const isPartOfFullTestRun = ref(false);
     const testDetails = ref<TestResult[]>([]);
     const testResults = reactive({
       total: 0,
@@ -237,7 +239,8 @@ export default defineComponent({
     
     // Filtered logs based on user selection
     const filteredLogs = computed(() => {
-      return logs.value.filter(log => {
+      // Add LogEntry type here
+      return logs.value.filter((log: LogEntry) => {
         if (log.level === 'info' && !showInfo.value) return false;
         if (log.level === 'error' && !showError.value) return false;
         if (log.level === 'debug' && !showDebug.value) return false;
@@ -255,18 +258,18 @@ export default defineComponent({
     };
     
     // Add a test result
+    // Add a test result
     const addTestResult = (result: TestResult) => {
       testDetails.value.push(result);
       testResults.total++;
-      
-      if (result.status === 'PASS') {
+
+      if (result.success) { // Changed from status === 'PASS'
         testResults.passed++;
       } else {
         testResults.failed++;
-        logMessage('error', `Test failed: ${result.testName} - ${result.error || 'No error details'}`);
+        logMessage('error', `Test failed: ${result.name} - ${result.error || 'No error details'}`); // Changed from testName
       }
     };
-    
     // Clear test results
     const clearResults = () => {
       testDetails.value = [];
@@ -307,33 +310,35 @@ export default defineComponent({
     const runAllTests = async () => {
       try {
         isRunning.value = true;
+        isPartOfFullTestRun.value = true;  // Set flag when running all tests
         clearResults();
         setupConsoleCapture();
         logMessage('info', 'Starting all tests...');
         
         // First test connection
-        await testRedisConnection();
+        await runRedisConnectionTest();
         
         // Run store tests
-        await testAuthStore();
-        await testSettingsStore();
+        await runAuthStoreTest();
+        await runSettingsStoreTest();
         
         // Run advanced tests
-        await testErrorHandling();
-        await testCrossTabSync();
+        await runErrorHandlingTest();
+        await runCrossTabSyncTest();
         
         logMessage('info', 'All tests completed');
       } catch (error) {
         logMessage('error', `Error running tests: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
+        isPartOfFullTestRun.value = false;  // Reset flag
         restoreConsole();
         isRunning.value = false;
       }
     };
     
     // Test Redis connection
-    const testRedisConnection = async () => {
-      if (isRunning.value) return;
+    const runRedisConnectionTest = async () => {
+      if (isRunning.value && !isPartOfFullTestRun.value) return;
       
       try {
         isRunning.value = true;
@@ -341,15 +346,15 @@ export default defineComponent({
         logMessage('info', 'Testing Redis connection...');
         
         const startTime = Date.now();
-        const result = await RedisTests.testRedisConnection();
+        const result = await testRedisConnection();
         const duration = Date.now() - startTime;
         
         connectionStatus.connected = result.success;
         connectionStatus.lastChecked = Date.now();
-        
+
         addTestResult({
-          testName: 'Redis Connection',
-          status: result.success ? 'PASS' : 'FAIL',
+          name: 'Redis Connection', // Changed from testName
+          success: result.success, // Changed from status
           timestamp: Date.now(),
           duration,
           message: result.message,
@@ -363,8 +368,8 @@ export default defineComponent({
         }
       } catch (error) {
         addTestResult({
-          testName: 'Redis Connection',
-          status: 'FAIL',
+          name: 'Redis Connection', // Changed from testName
+          success: false, // Changed from status
           timestamp: Date.now(),
           duration: 0,
           error: error instanceof Error ? error.message : String(error)
@@ -377,25 +382,25 @@ export default defineComponent({
     };
     
     // Test Auth Store
-    const testAuthStore = async () => {
-      if (isRunning.value && !runAllTests) return;
+    const runAuthStoreTest = async () => {
+      if (isRunning.value && !isPartOfFullTestRun.value) return;
       
       try {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           isRunning.value = true;
           setupConsoleCapture();
         }
         logMessage('info', 'Testing Auth store...');
         
         const startTime = Date.now();
-        const results = await RedisTests.testAuthStore();
+        const results = await testAuthStore();
         const duration = Date.now() - startTime;
         
         // Process test results
         for (const result of results) {
           addTestResult({
-            testName: `Auth Store: ${result.name}`,
-            status: result.success ? 'PASS' : 'FAIL',
+            name: `Auth Store: ${result.name}`,
+            success: result.success,
             timestamp: Date.now(),
             duration: result.duration || 0,
             message: result.message,
@@ -403,7 +408,8 @@ export default defineComponent({
           });
         }
         
-        const failedTests = results.filter(r => !r.success).length;
+        // Add TestResult type here
+        const failedTests = results.filter((r: TestResult) => !r.success).length;
         if (failedTests === 0) {
           logMessage('info', `Auth store tests completed successfully (${results.length} tests)`);
         } else {
@@ -411,15 +417,15 @@ export default defineComponent({
         }
       } catch (error) {
         addTestResult({
-          testName: 'Auth Store',
-          status: 'FAIL',
+          name: 'Auth Store',
+          success: false,
           timestamp: Date.now(),
           duration: 0,
           error: error instanceof Error ? error.message : String(error)
         });
-        logMessage('error', `Exception testing Auth store: ${error instanceof Error ? error.message : String(error)}`);
+        logMessage('error', `Exception occurred: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           restoreConsole();
           isRunning.value = false;
         }
@@ -427,25 +433,25 @@ export default defineComponent({
     };
     
     // Test Settings Store
-    const testSettingsStore = async () => {
-      if (isRunning.value && !runAllTests) return;
+    const runSettingsStoreTest = async () => {
+      if (isRunning.value && !isPartOfFullTestRun.value) return;
       
       try {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           isRunning.value = true;
           setupConsoleCapture();
         }
         logMessage('info', 'Testing Settings store...');
         
         const startTime = Date.now();
-        const results = await RedisTests.testSettingsStore();
+        const results = await testSettingsStore();
         const duration = Date.now() - startTime;
         
         // Process test results
         for (const result of results) {
           addTestResult({
-            testName: `Settings Store: ${result.name}`,
-            status: result.success ? 'PASS' : 'FAIL',
+            name: `Settings Store: ${result.name}`, // Changed from testName
+            success: result.success, // Changed from status
             timestamp: Date.now(),
             duration: result.duration || 0,
             message: result.message,
@@ -453,7 +459,8 @@ export default defineComponent({
           });
         }
         
-        const failedTests = results.filter(r => !r.success).length;
+        // Add TestResult type here
+        const failedTests = results.filter((r: TestResult) => !r.success).length;
         if (failedTests === 0) {
           logMessage('info', `Settings store tests completed successfully (${results.length} tests)`);
         } else {
@@ -461,15 +468,15 @@ export default defineComponent({
         }
       } catch (error) {
         addTestResult({
-          testName: 'Settings Store',
-          status: 'FAIL',
+          name: 'Settings Store',
+          success: false,
           timestamp: Date.now(),
           duration: 0,
           error: error instanceof Error ? error.message : String(error)
         });
-        logMessage('error', `Exception testing Settings store: ${error instanceof Error ? error.message : String(error)}`);
+        logMessage('error', `Exception occurred: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           restoreConsole();
           isRunning.value = false;
         }
@@ -477,25 +484,25 @@ export default defineComponent({
     };
     
     // Test Error Handling
-    const testErrorHandling = async () => {
-      if (isRunning.value && !runAllTests) return;
+    const runErrorHandlingTest = async () => {
+      if (isRunning.value && !isPartOfFullTestRun.value) return;
       
       try {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           isRunning.value = true;
           setupConsoleCapture();
         }
         logMessage('info', 'Testing error handling...');
         
         const startTime = Date.now();
-        const results = await RedisTests.testErrorHandling();
+        const results = await testErrorHandling();
         const duration = Date.now() - startTime;
         
         // Process test results
         for (const result of results) {
           addTestResult({
-            testName: `Error Handling: ${result.name}`,
-            status: result.success ? 'PASS' : 'FAIL',
+            name: `Error Handling: ${result.name}`, // Changed from testName
+            success: result.success, // Changed from status
             timestamp: Date.now(),
             duration: result.duration || 0,
             message: result.message,
@@ -503,7 +510,8 @@ export default defineComponent({
           });
         }
         
-        const failedTests = results.filter(r => !r.success).length;
+        // Add TestResult type here
+        const failedTests = results.filter((r: TestResult) => !r.success).length;
         if (failedTests === 0) {
           logMessage('info', `Error handling tests completed successfully (${results.length} tests)`);
         } else {
@@ -511,15 +519,15 @@ export default defineComponent({
         }
       } catch (error) {
         addTestResult({
-          testName: 'Error Handling',
-          status: 'FAIL',
+          name: 'Error Handling',
+          success: false,
           timestamp: Date.now(),
           duration: 0,
           error: error instanceof Error ? error.message : String(error)
         });
-        logMessage('error', `Exception testing error handling: ${error instanceof Error ? error.message : String(error)}`);
+        logMessage('error', `Exception occurred: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           restoreConsole();
           isRunning.value = false;
         }
@@ -527,11 +535,11 @@ export default defineComponent({
     };
     
     // Test Cross-Tab Sync
-    const testCrossTabSync = async () => {
-      if (isRunning.value && !runAllTests) return;
+    const runCrossTabSyncTest = async () => {
+      if (isRunning.value && !isPartOfFullTestRun.value) return;
       
       try {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           isRunning.value = true;
           setupConsoleCapture();
         }
@@ -540,14 +548,14 @@ export default defineComponent({
         showCrossTabInfo.value = true;
         
         const startTime = Date.now();
-        const results = await RedisTests.testCrossTabSync();
+        const results = await testCrossTabSync();
         const duration = Date.now() - startTime;
         
         // Process test results
         for (const result of results) {
           addTestResult({
-            testName: `Cross-Tab Sync: ${result.name}`,
-            status: result.success ? 'PASS' : 'FAIL',
+            name: `Cross-Tab Sync: ${result.name}`, // Changed from testName
+            success: result.success, // Changed from status
             timestamp: Date.now(),
             duration: result.duration || 0,
             message: result.message,
@@ -555,7 +563,8 @@ export default defineComponent({
           });
         }
         
-        const failedTests = results.filter(r => !r.success).length;
+        // Add TestResult type here
+        const failedTests = results.filter((r: TestResult) => !r.success).length;
         if (failedTests === 0) {
           logMessage('info', `Cross-tab sync tests completed successfully (${results.length} tests)`);
         } else {
@@ -565,15 +574,15 @@ export default defineComponent({
         showCrossTabDialog.value = true;
       } catch (error) {
         addTestResult({
-          testName: 'Cross-Tab Sync',
-          status: 'FAIL',
+          name: 'Cross-Tab Sync',
+          success: false,
           timestamp: Date.now(),
           duration: 0,
           error: error instanceof Error ? error.message : String(error)
         });
-        logMessage('error', `Exception testing cross-tab sync: ${error instanceof Error ? error.message : String(error)}`);
+        logMessage('error', `Exception occurred: ${error instanceof Error ? error.message : String(error)}`);
       } finally {
-        if (!runAllTests) {
+        if (!isPartOfFullTestRun.value) {
           restoreConsole();
           isRunning.value = false;
         }
@@ -615,7 +624,7 @@ export default defineComponent({
     // Load scripts on mount
     onMounted(() => {
       // Check Redis connection
-      testRedisConnection();
+      runRedisConnectionTest();
     });
     
     // Cleanup on unmount
@@ -643,14 +652,12 @@ export default defineComponent({
       // Methods
       logMessage,
       addTestResult,
-      clearResults,
-      clearLogs,
       runAllTests,
-      testRedisConnection,
-      testAuthStore,
-      testSettingsStore,
-      testErrorHandling,
-      testCrossTabSync,
+      runRedisConnectionTest,
+      runAuthStoreTest,
+      runSettingsStoreTest,
+      runErrorHandlingTest,
+      runCrossTabSyncTest,
       generateCrossTabEvent,
       closeCrossTabDialog
     };

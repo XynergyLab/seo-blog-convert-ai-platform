@@ -38,10 +38,10 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt gunicorn
 
 # Copy application code
-COPY migrations ./migrations
+COPY database/migrations ./migrations # Updated source path
 COPY wsgi.py .
 COPY app ./app
-COPY instance ./instance
+COPY config/instance ./instance # Updated source path
 COPY docker/start.sh ./start.sh
 
 # Create necessary directories

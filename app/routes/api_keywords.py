@@ -3,6 +3,7 @@ from app.models.keyword import Keyword, KeywordStatus
 from app.models.blog import BlogPost
 from typing import List, Dict, Any, Optional
 from sqlalchemy.exc import SQLAlchemyError
+from app.extensions import db
 
 api_keywords = Blueprint('api_keywords', __name__, url_prefix='/api/keywords')
 

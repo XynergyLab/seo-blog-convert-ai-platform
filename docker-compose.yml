@@ -5,14 +5,15 @@ services:
       dockerfile: Dockerfile.backend
     ports:
       - "5000:5000"
-environment:
-  - FLASK_ENV=production
-  - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@database:5432/${DB_NAME:-lm_studio_agents}
-  # LM Studio API configuration
-  - LM_API_BASE_URL=${LM_API_BASE_URL:-http://localhost:1234}
-  - LM_API_KEY=${LM_API_KEY}
-  - LM_MODEL=${LM_MODEL:-default}
-  - LM_MAX_TOKENS=${LM_MAX_TOKENS:-2000}
+    env_file: ./config/.env # Load environment variables from the moved .env file
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://${DB_USER:-user}:${DB_PASSWORD:-password}@database:5432/${DB_NAME:-lm_studio_agents}
+      # LM Studio API configuration
+      - LM_API_BASE_URL=${LM_API_BASE_URL:-http://localhost:1234}
+      - LM_API_KEY=${LM_API_KEY}
+      - LM_MODEL=${LM_MODEL:-default}
+      - LM_MAX_TOKENS=${LM_MAX_TOKENS:-2000}
       - DB_USER=user
       - DB_PASSWORD=password
       - DB_HOST=database
@@ -31,11 +32,11 @@ environment:
       - KEYWORDS_LOG_PATH=/app/logs/keywords.log
       - DATA_RETENTION_DAYS=90
     volumes:
-      - ./builds/volumes/static:/app/app/static
-      - ./builds/logs/backend:/app/logs
-      - ./builds/logs/analytics:/app/logs/analytics
-      - ./builds/data/analytics:/app/app/analytics/data
-      - ./.env:/app/.env
+      - ./docker/builds/volumes/static:/app/app/static # Updated path
+      - ./docker/builds/logs/backend:/app/logs # Updated path
+      - ./docker/builds/logs/analytics:/app/logs/analytics # Updated path
+      - ./docker/builds/data/analytics:/app/app/analytics/data # Updated path
+      # ./.env mount removed, using env_file instead
     depends_on:
       database:
         condition: service_healthy
@@ -58,6 +59,7 @@ environment:
       dockerfile: Dockerfile.frontend
     ports:
       - "8080:8080"
+    env_file: ./config/.env # Load environment variables from the moved .env file
     environment:
       - VUE_APP_API_ENDPOINT=http://backend:5000/api
       - VUE_APP_ANALYTICS_ENABLED=true
@@ -67,10 +69,10 @@ environment:
       - PORT=8080
       - SERVE_OPTS="--single --cors --compress"
     volumes:
-      - ./builds/volumes/static:/app/static
-      - ./builds/logs/frontend:/app/logs
-      - ./builds/logs/analytics:/app/logs/analytics
-      - ./.env:/app/.env
+      - ./docker/builds/volumes/static:/app/static # Updated path
+      - ./docker/builds/logs/frontend:/app/logs # Updated path
+      - ./docker/builds/logs/analytics:/app/logs/analytics # Updated path
+      # ./.env mount removed, using env_file instead
     depends_on:
       backend:
         condition: service_healthy
@@ -96,7 +98,7 @@ environment:
       POSTGRES_PASSWORD: password
       POSTGRES_DB: lm_studio_agents
     volumes:
-      - ./builds/volumes/postgres:/var/lib/postgresql/data
+      - ./docker/builds/volumes/postgres:/var/lib/postgresql/data # Updated path
     ports:
       - "5432:5432"
     healthcheck:
@@ -120,10 +122,9 @@ volumes:
 
 secrets:
   db_password:
-    file: ./secrets/db_password.txt
+    file: ./config/secrets/db_password.txt # Updated path
   lm_api_key:
-    file: ./secrets/lm_api_key.txt
-
+    file: ./config/secrets/lm_api_key.txt # Updated path
 networks:
   lm_network:
     driver: bridge
