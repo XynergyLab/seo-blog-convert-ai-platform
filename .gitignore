@@ -14,6 +14,18 @@ build/
 .next/
 .nuxt/
 
+# Database migrations - should not be committed
+/migrations/**
+
+# Test directories and files
+/tests/**
+!/tests/__init__.py
+
+# Python test artifacts
+.pytest_cache/
+.coverage
+htmlcov/
+
 # Local development
 .cache/
 .DS_Store
