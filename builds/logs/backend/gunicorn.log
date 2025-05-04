@@ -1,0 +1,12 @@
+[2025-05-03 20:09:34 +0000] [1] [INFO] Starting gunicorn 23.0.0
+[2025-05-03 20:09:34 +0000] [1] [INFO] Listening at: http://0.0.0.0:5000 (1)
+[2025-05-03 20:09:34 +0000] [1] [INFO] Using worker: sync
+[2025-05-03 20:09:34 +0000] [7] [INFO] Booting worker with pid: 7
+[2025-05-03 20:09:34 +0000] [6] [INFO] Booting worker with pid: 6
+[2025-05-03 20:09:34 +0000] [8] [INFO] Booting worker with pid: 8
+[2025-05-03 20:09:34 +0000] [7] [INFO] Worker exiting (pid: 7)
+[2025-05-03 20:09:34 +0000] [6] [INFO] Worker exiting (pid: 6)
+[2025-05-03 20:09:34 +0000] [1] [ERROR] Worker (pid:7) exited with code 4
+[2025-05-03 20:09:34 +0000] [1] [ERROR] Worker (pid:6) was sent SIGTERM!
+[2025-05-03 20:09:34 +0000] [8] [INFO] Worker exiting (pid: 8)
+[2025-05-03 20:09:34 +0000] [1] [ERROR] Worker (pid:8) exited with code 4

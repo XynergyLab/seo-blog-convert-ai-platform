@@ -1,0 +1,150 @@
+{% extends 'base.html' %}
+
+{% block title %}Blog Generator - AI Agent MVP{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1>Blog Post Generator</h1>
+    <p>Generate high-quality blog posts using AI. Fill out the form below to get started.</p>
+</div>
+
+<section class="card">
+    <form method="post" action="{{ url_for('blog.generate') }}" class="form" id="blog-form">
+        <div class="form-group">
+            <label for="title">Blog Title <span class="required">*</span></label>
+            <input type="text" id="title" name="title" placeholder="Enter a title for your blog post" required>
+            <small>A catchy title helps engage readers</small>
+        </div>
+
+        <div class="form-group">
+            <label for="topic">Topic <span class="required">*</span></label>
+            <input type="text" id="topic" name="topic" placeholder="What is your blog post about?" required>
+            <small>Be specific about what you want your blog to cover</small>
+        </div>
+
+        <div class="form-group">
+            <label for="tone">Tone</label>
+            <select id="tone" name="tone">
+                <option value="professional">Professional</option>
+                <option value="casual">Casual</option>
+                <option value="formal">Formal</option>
+                <option value="informative">Informative</option>
+                <option value="enthusiastic">Enthusiastic</option>
+                <option value="humorous">Humorous</option>
+            </select>
+            <small>The tone affects how your content is presented to readers</small>
+        </div>
+
+        <div class="form-group">
+            <label for="length">Length</label>
+            <select id="length" name="length">
+                <option value="short">Short (~300 words)</option>
+                <option value="medium" selected>Medium (~600 words)</option>
+                <option value="long">Long (~1200 words)</option>
+            </select>
+            <small>Longer posts typically provide more in-depth information</small>
+        </div>
+
+        <div class="form-group">
+            <label for="keywords">Keywords (optional)</label>
+            <input type="text" id="keywords" name="keywords" placeholder="Comma-separated keywords">
+            <small>Keywords will be incorporated into your blog post to improve SEO</small>
+        </div>
+
+        <div class="form-group">
+            <button type="submit" class="btn primary" id="generate-btn">Generate Blog Post</button>
+            <div id="loading" class="loading-spinner" style="display: none;">
+                <div class="spinner"></div>
+                <p>Generating your blog post... This may take a minute.</p>
+            </div>
+        </div>
+    </form>
+</section>
+
+<div class="api-status-container">
+    <div id="lm-studio-api-status" class="status-unknown">
+        <span class="status-dot"></span>
+        <span class="status-text">Checking LM Studio API status...</span>
+    </div>
+</div>
+{% endblock %}
+
+{% block head %}
+<style>
+    .required {
+        color: #dc3545;
+    }
+    
+    .loading-spinner {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        margin-top: 20px;
+    }
+    
+    .spinner {
+        border: 4px solid rgba(0, 0, 0, 0.1);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        border-left-color: var(--primary-color);
+        animation: spin 1s linear infinite;
+    }
+    
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    
+    .api-status-container {
+        margin-top: 30px;
+        display: flex;
+        justify-content: center;
+    }
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Form submission logic
+    const form = document.getElementById('blog-form');
+    const generateBtn = document.getElementById('generate-btn');
+    const loading = document.getElementById('loading');
+    
+    form.addEventListener('submit', function() {
+        // Show loading spinner, hide button
+        generateBtn.style.display = 'none';
+        loading.style.display = 'flex';
+    });
+    
+    // Check LM Studio API status
+    function checkAPIStatus() {
+        const statusElement = document.getElementById('lm-studio-api-status');
+        
+        fetch('/health')
+            .then(response => response.json())
+            .then(data => {
+                if (data.lm_studio === 'connected') {
+                    statusElement.className = 'status-online';
+                    statusElement.querySelector('.status-text').textContent = 'LM Studio API: Connected';
+                    generateBtn.disabled = false;
+                } else {
+                    statusElement.className = 'status-offline';
+                    statusElement.querySelector('.status-text').textContent = 'LM Studio API: Disconnected';
+                    generateBtn.disabled = true;
+                }
+            })
+            .catch(error => {
+                statusElement.className = 'status-offline';
+                statusElement.querySelector('.status-text').textContent = 'LM Studio API: Error connecting';
+                generateBtn.disabled = true;
+            });
+    }
+    
+    // Check status immediately and then every 10 seconds
+    checkAPIStatus();
+    setInterval(checkAPIStatus, 10000);
+});
+</script>
+{% endblock %}

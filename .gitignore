@@ -1,0 +1,60 @@
+# Dependency directories
+node_modules/
+**/node_modules/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Build output
+dist/
+build/
+.out/
+.next/
+.nuxt/
+
+# Local development
+.cache/
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Testing
+coverage/
+*.lcov
+
+# Docker
+docker-compose.override.yml
+
+# Editor directories and files
+.idea/
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Local development files
+.venv/
+venv/
+ENV/
+
+# System specific
+Thumbs.db
+ehthumbs.db
+[Dd]esktop.ini
+

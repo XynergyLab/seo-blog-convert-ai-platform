@@ -1,0 +1,46 @@
+FROM python:3.9-slim
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV FLASK_ENV=production
+ENV FLASK_APP=wsgi.py
+ENV ANALYTICS_ENABLED=true
+ENV ANALYTICS_LOG_LEVEL=info
+ENV KEYWORDS_TRACKING_ENABLED=true
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    postgresql-client \
+    netcat-openbsd \
+    dos2unix \
+    wget \
+    && rm -rf /var/lib/apt/lists/*
+# Copy requirements and install Python dependencies
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt gunicorn
+
+# Copy application code
+COPY migrations ./migrations
+COPY wsgi.py .
+COPY app ./app
+COPY instance ./instance
+COPY docker/start.sh ./start.sh
+
+# Create necessary directories
+RUN mkdir -p /app/logs/analytics /app/static /app/analytics/data
+
+# Make startup script executable and ensure Unix line endings
+RUN dos2unix ./start.sh && chmod +x ./start.sh
+
+# Set up logging
+ENV LOG_PATH=/app/logs/app.log
+ENV ANALYTICS_LOG_PATH=/app/logs/analytics.log
+ENV KEYWORDS_LOG_PATH=/app/logs/keywords.log
+
+EXPOSE 5000
+
+# Run startup script
+CMD ["/bin/sh", "./start.sh"]

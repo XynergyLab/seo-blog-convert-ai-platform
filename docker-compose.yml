@@ -1,0 +1,127 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile.backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - DATABASE_URL=postgresql://user:password@database:5432/lm_studio_agents
+      - DB_USER=user
+      - DB_PASSWORD=password
+      - DB_HOST=database
+      - DB_PORT=5432
+      - DB_NAME=lm_studio_agents
+      - DB_POOL_SIZE=10
+      - DB_MAX_OVERFLOW=20
+      - DB_POOL_RECYCLE=1800
+      - DB_POOL_TIMEOUT=30
+      - WSL_HOST_IP=${WSL_HOST_IP:-172.22.178.90}
+      # Analytics environment variables
+      - ANALYTICS_ENABLED=true
+      - ANALYTICS_LOG_LEVEL=info
+      - KEYWORDS_TRACKING_ENABLED=true
+      - ANALYTICS_LOG_PATH=/app/logs/analytics.log
+      - KEYWORDS_LOG_PATH=/app/logs/keywords.log
+      - DATA_RETENTION_DAYS=90
+    volumes:
+      - ./builds/volumes/static:/app/app/static
+      - ./builds/logs/backend:/app/logs
+      - ./builds/logs/analytics:/app/logs/analytics
+      - ./builds/data/analytics:/app/app/analytics/data
+      - ./.env:/app/.env
+    depends_on:
+      database:
+        condition: service_healthy
+        restart: true
+    restart: on-failure:3
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:5000/api/health"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - lm_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "8080:8080"
+    environment:
+      - VUE_APP_API_ENDPOINT=http://backend:5000/api
+      - VUE_APP_ANALYTICS_ENABLED=true
+      - VUE_APP_CHART_THEME=light
+      - NODE_ENV=production
+      - HOST=0.0.0.0
+      - PORT=8080
+      - SERVE_OPTS="--single --cors --compress"
+    volumes:
+      - ./builds/volumes/static:/app/static
+      - ./builds/logs/frontend:/app/logs
+      - ./builds/logs/analytics:/app/logs/analytics
+      - ./.env:/app/.env
+    depends_on:
+      backend:
+        condition: service_healthy
+        restart: true
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8080"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    restart: on-failure:3
+    networks:
+      - lm_network
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  database:
+    image: postgres:13
+    restart: always
+    init: true
+    environment:
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: lm_studio_agents
+    volumes:
+      - ./builds/volumes/postgres:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d lm_studio_agents"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    networks:
+      - lm_network
+
+volumes:
+  postgres:
+    driver: local
+  static:
+    driver: local
+  logs:
+    driver: local
+
+networks:
+  lm_network:
+    driver: bridge
+    # Allow communication with host machine and WSL2
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.22.0.0/16
+          gateway: 172.22.0.1
+    # Enable internal DNS resolution
+    driver_opts:
+      com.docker.network.bridge.name: lm_network
+      com.docker.network.bridge.enable_icc: "true"
+      com.docker.network.bridge.enable_ip_masquerade: "true"
